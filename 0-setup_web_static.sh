@@ -1,19 +1,24 @@
 #!/usr/bin/env bash
-# Bash script that sets up web servers for the deployment of web_static
-sudo apt-get update
-sudo apt-get -y install nginx
-sudo ufw allow 'Nginx HTTP'
+#config nginx and the neccessary directory and files
 
-sudo mkdir -p /data/
-sudo mkdir -p /data/web_static/
-sudo mkdir -p /data/web_static/releases/
-sudo mkdir -p /data/web_static/shared/
-sudo mkdir -p /data/web_static/releases/test/
-sudo touch /data/web_static/releases/test/index.html
-sudo echo "<html>
-  <head>
-  </head>
-  <body>
-    Holberton School
-  </body>
-</html>" | sudo tee /data/web_static/releases/test/index.html
+[[ ! -x nginx ]]  && apt update && apt install nginx -y
+
+mkdir -p /data/web_static/shared/
+mkdir -p /data/web_static/releases/test/
+touch /data/web_static/releases/test/index.html
+echo "<html>
+   <head>
+     </head>
+     <body>
+        Holberton School
+    </body>
+ </html>" > /data/web_static/releases/test/index.html
+[[ -L /data/web_static/current ]] && rm -rf /data/web_static/current
+ 
+ln -sf /data/web_static/releases/test/ /data/web_static/current
+
+chown -R ubuntu:ubuntu /data
+chmod -R 755 /data
+sed -i '48 i \\tlocation /hbnb_static/ {\n\t\talias /data/web_static/current/;\n\t}\n' /etc/nginx/sites-available/default
+ 
+service nginx restart
