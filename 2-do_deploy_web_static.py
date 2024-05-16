@@ -1,56 +1,35 @@
 #!/usr/bin/python3
-"""Compress web static package
+"""script (based on the file 1-pack_web_static.py) that distributes
+an archive to your web servers
 """
-from fabric.api import *
-from datetime import datetime
-from os import path
 
+from fabric.operations import run, put, env
+import os
 
-env.hosts = ['100.25.19.204', '54.157.159.85']
-env.user = 'ubuntu'
-env.key_filename = '~/.ssh/id_rsa'
+env.hosts = ['18.233.67.128', '100.25.162.166']
 
 
 def do_deploy(archive_path):
-        """Deploy web files to server
-        """
-        try:
-                if not (path.exists(archive_path)):
-                        return False
-
-                # upload archive
-                put(archive_path, '/tmp/')
-
-                # create target dir
-                timestamp = archive_path[-18:-4]
-                run('sudo mkdir -p /data/web_static/\
-releases/web_static_{}/'.format(timestamp))
-
-                # uncompress archive and delete .tgz
-                run('sudo tar -xzf /tmp/web_static_{}.tgz -C \
-/data/web_static/releases/web_static_{}/'
-                    .format(timestamp, timestamp))
-
-                # remove archive
-                run('sudo rm /tmp/web_static_{}.tgz'.format(timestamp))
-
-                # move contents into host web_static
-                run('sudo mv /data/web_static/releases/web_static_{}/web_static/* \
-/data/web_static/releases/web_static_{}/'.format(timestamp, timestamp))
-
-                # remove extraneous web_static dir
-                run('sudo rm -rf /data/web_static/releases/\
-web_static_{}/web_static'
-                    .format(timestamp))
-
-                # delete pre-existing sym link
-                run('sudo rm -rf /data/web_static/current')
-
-                # re-establish symbolic link
-                run('sudo ln -s /data/web_static/releases/\
-web_static_{}/ /data/web_static/current'.format(timestamp))
-        except:
-                return False
-
-        # return True on success
-        return True
+    """
+    distributes an archive to web servers
+    """
+    if not os.path.exists(archive_path):
+        return(False)
+    try:
+        put(archive_path, '/tmp/')
+        tar_filename = archive_path.split("/")[-1]
+        filename = tar_filename.split(".")[0]
+        run('mkdir -p /data/web_static/releases/{}'.format(filename))
+        run('tar -xzf /tmp/{} -C /data/web_static/releases/{}'.format
+            (tar_filename, filename))
+        run('rm /tmp/{}'.format(tar_filename))
+        run('mv /data/web_static/releases/{}/web_static/* \
+            /data/web_static/releases/{}/'.format(filename, filename))
+        run('rm -rf /data/web_static/releases/{}/web_static'
+            .format(filename))
+        run('rm -rf /data/web_static/current')
+        run('ln -s /data/web_static/releases/{} /data/web_static/current'
+            .format(filename))
+        return(True)
+    except Exception as error:
+        return(False)
